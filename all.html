@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>八数码游戏</title>
+  <style>
+    table {
+      border-collapse: collapse;
+    }
+    td {
+      width: 50px;
+      height: 50px;
+      border: 1px solid black;
+      text-align: center;
+      font-size: 20px;
+    }
+    td:hover {
+ 	  background-color: #04AA6D;
+  	  color: white;
+    }
+    .empty {
+      background-color: lightgray;
+    }
+    .button-container {
+      position: relative;
+    }
+    .button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: gray;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .button.green {
+      background-color: green;
+    }
+    .button-reset {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    .button-reset:hover {
+ 	  background-color: #04AA6D;
+  	  color: white;
+    }
+    .button-auto {
+      position: absolute;
+      top: 10px;
+      right: 300px;
+    }
+    .button-auto:hover {
+ 	  background-color: #008CBA;
+  	  color: white;
+    }
+    .htmlpage-row{
+      display:table;
+      padding-top:10px;
+      padding-right:10px;
+      padding-bottom:10px;
+      padding-left:10px;
+      width:100%;
+      
+    }
+    .htmlpage-cell{
+      width:8%;
+      display:table-cell;
+      height:20px;
+    }
+    #iolub{
+      height:200px;
+      width:4%;
+    }
+    .textarea{
+      width: 400px;
+      min-height: 20px;
+      max-height: 600px;
+      _height: 200px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 3px;
+      outline: 0;
+      border: 1px solid #a0b3d6;
+      font-size: 12px;
+      line-height: 24px;
+      padding: 2px;
+      word-wrap: break-word;
+      overflow-x: hidden;
+      overflow-y: auto;
+      border-color: rgba(82, 168, 236, 0.8);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 8px rgba(82, 168, 236, 0.6);
+      position: absolute;
+      top:95px;
+      right:200px;
+      left:290px;
+	}
+  </style>
+</head>
+<body>
+  <h1>八数码游戏</h1>
+
+  <div class="htmlpage-row">
+      <div id="#iolub" class="htmlpage-cell" >
+        <table id="board">
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </table>
+      </div>
+      
+      <div class="htmlpage-cell">
+        <textarea  id="path-container" class="textarea" contenteditable="true"  >移动路径
+        </textarea>
+        
+      </div>
+  </div>
+  <p>移动计数: <span id="moves">0</span></p>
+  <div class="button-container">
+        <button id="solve-button">自动完成</button>
+        <select id="algorithm-select">
+            <option value="algorithm1">BFS</option>
+            <option value="algorithm2">DFS</option>
+            <option value="algorithm3">A*</option>
+        </select>
+    </div>
+
+    <div class="button-container reset-button">
+        <button id="reset-button">重置游戏</button>
+    </div>
+  <script>
+  // 创建一个表示八数码问题的游戏对象
+var game = {
+  // 初始化游戏状态
+  init: function() {
+    this.board = [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 0]
+    ];
+    this.target = [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 0]
+    ];
+    this.emptyTile = { row: 2, col: 2 };
+    this.moves = 0;
+    this.shuffleBoard(1000); // 打乱游戏板块
+  },
+
+  // 打乱游戏板块
+  shuffleBoard: function(moves) {
+    for (var i = 0; i < moves; i++) {
+      var neighbors = this.getNeighbors(this.emptyTile.row, this.emptyTile.col);
+      var randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+      this.swapTiles(this.emptyTile.row, this.emptyTile.col, randomNeighbor.row, randomNeighbor.col);
+      this.emptyTile = randomNeighbor;
+    }
+    this.moves = 0;
+  },
+
+  // 获取指定位置的可移动邻居
+  getNeighbors: function(row, col) {
+    var neighbors = [];
+    if (row > 0) {
+      neighbors.push({ row: row - 1, col: col });
+    }
+    if (row < 2) {
+      neighbors.push({ row: row + 1, col: col });
+    }
+    if (col > 0) {
+      neighbors.push({ row: row, col: col - 1 });
+    }
+    if (col < 2) {
+      neighbors.push({ row: row, col: col + 1 });
+    }
+    return neighbors;
+  },
+
+  // 交换两个方块的位置
+  swapTiles: function(row1, col1, row2, col2) {
+    var temp = this.board[row1][col1];
+    this.board[row1][col1] = this.board[row2][col2];
+    this.board[row2][col2] = temp;
+  },
+
+  // 移动指定位置的方块
+  moveTile: function(row, col) {
+    if (this.isValidMove(row, col)) {
+      this.swapTiles(row, col, this.emptyTile.row, this.emptyTile.col);
+      this.emptyTile = { row: row, col: col };
+      this.moves++;
+    }
+  },
+
+  // 检查移动是否有效
+  isValidMove: function(row, col) {
+    return (
+      (row === this.emptyTile.row && Math.abs(col - this.emptyTile.col) === 1) || // 水平移动
+      (col === this.emptyTile.col && Math.abs(row - this.emptyTile.row) === 1) // 垂直移动
+    );
+  },
+
+  // 检查游戏是否完成
+  isSolved: function() {
+    for (var i = 0; i < 3; i++) {
+      for (var j = 0; j < 3; j++) {
+        if (this.board[i][j] !== this.target[i][j]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  };
+
+// 更新HTML表格中的游戏状态
+function updateBoard() {
+  var table = document.getElementById("board");
+  for (var i = 0; i < 3; i++) {
+    for (var j = 0; j < 3; j++) {
+      var cell = table.rows[i].cells[j];
+      if (game.board[i][j] === 0) {
+        cell.textContent = "";
+        cell.className = "empty";
+      } else {
+        cell.textContent = game.board[i][j];
+        cell.className = "";
+      }
+    }
+  }
+}
+
+// 更新移动计数
+function updateMoves() {
+  var movesElement = document.getElementById("moves");
+  movesElement.textContent = game.moves;
+}
+
+// 初始化游戏并更新显示
+game.init();
+updateBoard();
+updateMoves();
+
+// 处理用户点击事件
+var cells = document.getElementsByTagName("td");
+for (var i = 0; i < cells.length; i++) {
+  cells[i].addEventListener("click", function() {
+    var row = this.parentNode.rowIndex;
+    var col = this.cellIndex;
+    game.moveTile(row, col);
+    updateBoard();
+    updateMoves();
+
+    if (game.isSolved()) {
+      alert("恭喜您完成游戏！");
+    }
+  });
+}
+
+// 获取重置按钮元素
+var resetButton = document.getElementById("reset-button");
+
+resetButton.addEventListener("click", function() {
+  game.init();
+  updateBoard();
+  updateMoves();
+});
+// 获取算法选择按钮元素
+var solveButton = document.getElementById("solve-button");
+ 
+var algorithmSelect = document.getElementById("algorithm-select");
+
+solveButton.addEventListener("click", function() {
+  var selectedAlgorithm = algorithmSelect.value;
+  // 根据选择的算法执行相应的操作
+  function generatePossibleMoves(currentState) {
+        var possibleMoves = [];
+        var emptyCellRow, emptyCellCol;
+
+        // 找到空白方格的位置
+        for (var i = 0; i < currentState.length; i++) {
+            for (var j = 0; j < currentState[i].length; j++) {
+            if (currentState[i][j] === 0) {
+                emptyCellRow = i;
+                emptyCellCol = j;
+                break;
+            }
+            }
+        }
+
+        // 上移
+        if (emptyCellRow > 0) {
+            var newState = copyState(currentState);
+            swapCells(newState, emptyCellRow, emptyCellCol, emptyCellRow - 1, emptyCellCol);
+            possibleMoves.push(newState);
+        }
+
+        // 下移
+        if (emptyCellRow < currentState.length - 1) {
+            var newState = copyState(currentState);
+            swapCells(newState, emptyCellRow, emptyCellCol, emptyCellRow + 1, emptyCellCol);
+            possibleMoves.push(newState);
+        }
+
+        // 左移
+        if (emptyCellCol > 0) {
+            var newState = copyState(currentState);
+            swapCells(newState, emptyCellRow, emptyCellCol, emptyCellRow, emptyCellCol - 1);
+            possibleMoves.push(newState);
+        }
+
+        // 右移
+        if (emptyCellCol < currentState[0].length - 1) {
+            var newState = copyState(currentState);
+            swapCells(newState, emptyCellRow, emptyCellCol, emptyCellRow, emptyCellCol + 1);
+            possibleMoves.push(newState);
+        }
+
+        return possibleMoves;
+        }
+
+        function copyState(state) {
+        return state.map(function(row) {
+            return row.slice();
+        });
+        }
+
+        function swapCells(state, row1, col1, row2, col2) {
+        var temp = state[row1][col1];
+        state[row1][col1] = state[row2][col2];
+        state[row2][col2] = temp;
+        }
+  if (selectedAlgorithm === "algorithm1") {
+    var initialState = game.board;  // 当前的游戏状态
+     var targetState = game.target;  // 目标游戏状态
+     var queue = [];
+            var visited = new Set();
+            var path = new Map();
+
+            queue.push(initialState);
+            visited.add(initialState.toString());
+
+            while (queue.length > 0) {
+            var currentState = queue.shift();
+
+            if (currentState.toString() === targetState.toString()) {
+                // 找到了解决方案，生成路径
+                var solutionPath = [];
+                var state = currentState.toString();
+
+                while (state !== initialState.toString()) {
+                solutionPath.unshift(state);
+                state = path.get(state);
+                }
+
+                solutionPath.unshift(initialState.toString());
+
+				alert("找到解决方案！");
+                findMoves(solutionPath);
+                console.log(solutionPath);
+                displayPath(solutionPath);
+                break;
+            }
+
+            var possibleMoves = generatePossibleMoves(currentState);
+
+            for (var i = 0; i < possibleMoves.length; i++) {
+                var nextState = possibleMoves[i];
+
+                if (!visited.has(nextState.toString())) {
+                queue.push(nextState);
+                visited.add(nextState.toString());
+                path.set(nextState.toString(), currentState.toString());
+                }
+            }
+            }
+
+            if (queue.length === 0) {
+            alert("无解");
+            }
+    }
+   else if (selectedAlgorithm === "algorithm2") {
+        var initialState = game.board;  // 当前的游戏状态
+    var targetState = game.target;  // 目标游戏状态
+   var path = [];  // 当前路径
+    var foundSolution = false;
+    var maxDepth = 33;  // 设置最大深度限制
+
+    dfs(initialState, 0);  // 从深度0开始
+
+    function dfs(currentState, depth) {
+      if (currentState.toString() === targetState.toString()) {
+        // 找到了解决方案，生成路径
+        path.push(currentState.toString());
+
+        alert("找到解决方案！");
+        
+        console.log(path);findMoves(path);
+        displayPath(path);
+
+        foundSolution = true;
+        return;
+      }
+
+      if (depth >= maxDepth) {
+        // 达到最大深度限制
+        return;
+      }
+
+      path.push(currentState.toString());
+
+      var possibleMoves = generatePossibleMoves(currentState);
+
+      for (var i = 0; i < possibleMoves.length; i++) {
+        var nextState = possibleMoves[i];
+
+        if (!path.includes(nextState.toString())) {
+          dfs(nextState, depth + 1);  // 递归调用时增加深度
+
+          if (foundSolution) {
+            return;
+          }
+        }
+      }
+
+      path.pop();  // 恢复到上一层时，移除当前节点
+    }
+
+    if (!foundSolution) {
+      alert("无解");
+    }
+  }
+   else if (selectedAlgorithm === "algorithm3") {
+    // 执行算法3的操作
+    var initialState = game.board;  // 当前的游戏状态
+    var targetState = game.target;  // 目标游戏状态
+
+    var openSet = new PriorityQueue();  // 优先级队列，存储待扩展的节点
+    var closedSet = new Set();  // 存储已扩展的节点
+    var cameFrom = new Map();  // 存储节点的父节点
+    var gScore = new Map();  // 存储节点的实际成本
+    var fScore = new Map();  // 存储节点的估计成本
+
+    var foundSolution = false;
+
+    gScore.set(initialState.toString(), 0);
+    fScore.set(initialState.toString(), heuristic(initialState, targetState));
+
+    openSet.enqueue(initialState, fScore.get(initialState.toString()));
+
+    while (!openSet.isEmpty()) {
+      var current = openSet.dequeue().element;
+
+      if (current.toString() === targetState.toString()) {
+        // 找到了解决方案，生成路径
+        var solutionPath = reconstructPath(cameFrom, current);
+        
+
+        alert("找到解决方案!");
+        findMoves(solutionPath);
+        console.log(solutionPath);
+        displayPath(solutionPath);
+        foundSolution = true;
+        break;
+      }
+
+      closedSet.add(current.toString());
+
+      var neighbors = generatePossibleMoves(current);
+
+      for (var i = 0; i < neighbors.length; i++) {
+        var neighbor = neighbors[i];
+        var tentativeGScore = gScore.get(current.toString()) + 1;
+
+        if (closedSet.has(neighbor.toString()) && tentativeGScore >= gScore.get(neighbor.toString())) {
+          continue;
+        }
+
+        if (!closedSet.has(neighbor.toString()) || tentativeGScore < gScore.get(neighbor.toString())) {
+          cameFrom.set(neighbor.toString(), current.toString());
+          gScore.set(neighbor.toString(), tentativeGScore);
+          fScore.set(neighbor.toString(), tentativeGScore + heuristic(neighbor, targetState));
+
+          if (!openSet.contains(neighbor)) {
+            openSet.enqueue(neighbor, fScore.get(neighbor.toString()));
+          }
+        }
+      }
+    }
+
+    if (!foundSolution) {
+      alert("无解");
+    }
+  }
+});
+function heuristic(state, target) {
+  // 启发式函数，计算当前状态到目标状态的估计成本（曼哈顿距离之和）
+  var cost = 0;
+
+  for (var i = 0; i < state.length; i++) {
+    for (var j = 0; j < state[i].length; j++) {
+      var value = state[i][j];
+      if (value !== 0) {
+        var targetPosition = findPosition(target, value);
+        cost += Math.abs(i - targetPosition.row) + Math.abs(j - targetPosition.col);
+      }
+    }
+  }
+
+  return cost;
+}
+
+function findPosition(state, value) {
+  // 查找给定值在状态矩阵中的位置
+  for (var i = 0; i < state.length; i++) {
+    for (var j = 0; j < state[i].length; j++) {
+      if (state[i][j] === value) {
+        return { row: i, col: j };
+      }
+    }
+  }
+
+  return null;
+}
+
+function reconstructPath(cameFrom, current) {
+  // 从目标状态开始，根据父节点逐步恢复路径
+  var path = [];
+  var state = current.toString();
+
+  while (cameFrom.has(state)) {
+    path.unshift(state);
+    state = cameFrom.get(state);
+  }
+
+  path.unshift(state);
+
+  return path;
+}
+
+// 优先级队列的实现
+class PriorityQueue {
+  constructor() {
+    this.elements = [];
+  }
+
+  isEmpty() {
+    return this.elements.length === 0;
+  }
+
+  enqueue(element, priority) {
+    var queueElement = { element, priority };
+
+    if (this.isEmpty()) {
+      this.elements.push(queueElement);
+    } else {
+      var added = false;
+
+      for (var i = 0; i < this.elements.length; i++) {
+        if (queueElement.priority < this.elements[i].priority) {
+          this.elements.splice(i, 0, queueElement);
+          added = true;
+          break;
+        }
+      }
+
+      if (!added) {
+        this.elements.push(queueElement);
+      }
+    }
+  }
+
+  dequeue() {
+    if (this.isEmpty()) {
+      return null;
+    }
+
+    return this.elements.shift();
+  }
+
+  contains(element) {
+    for (var i = 0; i < this.elements.length; i++) {
+      if (this.elements[i].element.toString() === element.toString()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+}
+//全自动移动
+function findMoves(path) {
+  var moves = [];
+
+  for (var i = 1; i < path.length; i++) {
+    var currState = path[i].split(",");
+    var prevState = path[i - 1].split(",");
+
+    for (var j = 0; j < currState.length; j++) {
+      if (currState[j] == 0 ) {
+        var currRow = Math.floor(j  / 3); 
+        var currCol = j % 3;
+        moves.push({ currRow: currRow, currCol: currCol });
+      }
+    }
+  }
+  for (let i = 0; i < moves.length; i++){
+    setTimeout(() => {automove(moves[i].currRow,moves[i].currCol);
+                      console.log(moves[i],i)
+                      },i*600); 
+  }
+  console.log(moves)
+  return moves;
+ 
+}
+function automove(row, col){
+	
+    game.moveTile(row, col);
+    updateBoard();
+    updateMoves();
+
+    if (game.isSolved()) {
+      alert("恭喜您完成游戏！");
+    }
+}
+function displayPath(path) {
+
+  var textarea = document.getElementById('path-container');
+
+  textarea.textContent = '';
+
+  for (var i = 0; i < path.length; i++) {
+    var step = (i + 1) + '. ' + path[i] + '\n';
+    textarea.textContent += step;
+  }
+}
+</script>
+</body>
+</html>
